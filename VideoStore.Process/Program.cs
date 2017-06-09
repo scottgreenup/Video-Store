@@ -18,10 +18,8 @@ using System.ServiceModel.Description;
 using VideoStore.Business.Components.Interfaces;
 using VideoStore.WebClient.CustomAuth;
 
-namespace VideoStore.Process
-{
-    public class Program
-    {
+namespace VideoStore.Process {
+    public class Program {
         static void Main(string[] args)
         {
             ResolveDependencies();
@@ -38,15 +36,13 @@ namespace VideoStore.Process
 
         private static void CreateUser()
         {
-            using (VideoStoreEntityModelContainer lContainer = new VideoStoreEntityModelContainer())
-            {
+            using (VideoStoreEntityModelContainer lContainer = new VideoStoreEntityModelContainer()) {
                 if (lContainer.Users.Where((pUser) => pUser.Name == "Customer").Count() > 0)
                     return;
             }
 
-           
-            User lCustomer = new User()
-            {
+
+            User lCustomer = new User() {
                 Name = "Customer",
                 LoginCredential = new LoginCredential() { UserName = "Customer", Password = "Customer" },
                 Email = "Operator@Operator.com",
@@ -60,12 +56,9 @@ namespace VideoStore.Process
         private static void InsertCatalogueEntities()
         {
             using (TransactionScope lScope = new TransactionScope())
-            using (VideoStoreEntityModelContainer lContainer = new VideoStoreEntityModelContainer())
-            {
-                if (lContainer.Media.Count() == 0)
-                {
-                    Media lGreatExpectations = new Media()
-                    {
+            using (VideoStoreEntityModelContainer lContainer = new VideoStoreEntityModelContainer()) {
+                if (lContainer.Media.Count() == 0) {
+                    Media lGreatExpectations = new Media() {
                         Director = "Rene Clair",
                         Genre = "Fiction",
                         Price = 20.0,
@@ -75,8 +68,7 @@ namespace VideoStore.Process
                     lContainer.Media.AddObject(lGreatExpectations);
 
 
-                    Stock lGreatExpectationsStock = new Stock()
-                    {
+                    Stock lGreatExpectationsStock = new Stock() {
                         Media = lGreatExpectations,
                         Quantity = 5,
                         Warehouse = "Neutral Bay"
@@ -84,8 +76,7 @@ namespace VideoStore.Process
 
                     lContainer.Stocks.AddObject(lGreatExpectationsStock);
 
-                    Media lSoloist = new Media()
-                    {
+                    Media lSoloist = new Media() {
                         Director = "The Soloist",
                         Genre = "Fiction",
                         Price = 15.0,
@@ -94,8 +85,7 @@ namespace VideoStore.Process
 
                     lContainer.Media.AddObject(lSoloist);
 
-                    Stock lSoloistStock = new Stock()
-                    {
+                    Stock lSoloistStock = new Stock() {
                         Media = lSoloist,
                         Quantity = 7,
                         Warehouse = "Neutral Bay"
@@ -103,10 +93,8 @@ namespace VideoStore.Process
 
                     lContainer.Stocks.AddObject(lSoloistStock);
 
-                    for (int i = 0; i < 30; i++)
-                    {
-                        Media lItem = new Media()
-                        {
+                    for (int i = 0; i < 30; i++) {
+                        Media lItem = new Media() {
                             Director = String.Format("Director {0}", i.ToString()),
                             Genre = String.Format("Genre {0}", i),
                             Price = i,
@@ -115,8 +103,7 @@ namespace VideoStore.Process
 
                         lContainer.Media.AddObject(lItem);
 
-                        Stock lStock = new Stock()
-                        {
+                        Stock lStock = new Stock() {
                             Media = lItem,
                             Quantity = 7,
                             Warehouse = String.Format("Warehouse {0}", i)
@@ -130,26 +117,21 @@ namespace VideoStore.Process
                     lScope.Complete();
                 }
 
-                
+
 
             }
 
         }
 
-   
-
         private static void CreateOperator()
         {
             Role lOperatorRole = new Role() { Name = "Operator" };
-            using (VideoStoreEntityModelContainer lContainer = new VideoStoreEntityModelContainer())
-            {
-                if (lContainer.Roles.Count() > 0)
-                {
+            using (VideoStoreEntityModelContainer lContainer = new VideoStoreEntityModelContainer()) {
+                if (lContainer.Roles.Count() > 0) {
                     return;
                 }
             }
-            User lOperator = new User()
-            {
+            User lOperator = new User() {
                 Name = "Operator",
                 LoginCredential = new LoginCredential() { UserName = "Operator", Password = "Operator" },
                 Email = "Operator@Operator.com",
@@ -176,26 +158,22 @@ namespace VideoStore.Process
         private static void HostServices()
         {
             List<ServiceHost> lHosts = new List<ServiceHost>();
-            try
-            {
+            try {
 
                 Configuration lAppConfig = ConfigurationManager.OpenExeConfiguration(ConfigurationUserLevel.None);
                 ServiceModelSectionGroup lServiceModel = ServiceModelSectionGroup.GetSectionGroup(lAppConfig);
 
                 System.ServiceModel.Configuration.ServicesSection lServices = lServiceModel.Services;
-                foreach (ServiceElement lServiceElement in lServices.Services)
-                {
+                foreach (ServiceElement lServiceElement in lServices.Services) {
                     ServiceHost lHost = new ServiceHost(Type.GetType(GetAssemblyQualifiedServiceName(lServiceElement.Name)));
                     lHost.Open();
                     lHosts.Add(lHost);
                 }
                 Console.WriteLine("VideoStore Service Started, press Q key to quit");
-                while (Console.ReadKey().Key != ConsoleKey.Q) ;
-            }
-            finally
-            {
-                foreach (ServiceHost lHost in lHosts)
-                {
+                while (Console.ReadKey().Key != ConsoleKey.Q)
+                    ;
+            } finally {
+                foreach (ServiceHost lHost in lHosts) {
                     lHost.Close();
                 }
             }

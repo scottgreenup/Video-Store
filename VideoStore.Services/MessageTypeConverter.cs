@@ -5,25 +5,19 @@ using System.Text;
 using System.Threading.Tasks;
 using VideoStore.Business.Components.Interfaces;
 
-namespace VideoStore.Services
-{
+namespace VideoStore.Services {
     /// <summary>
     /// Based on AutoMapper: https://github.com/AutoMapper/AutoMapper/wiki/Getting-started
     /// See above link if help is needed
     /// </summary>
-    public class MessageTypeConverter
-    {
+    public class MessageTypeConverter {
         private static MessageTypeConverter sMessageTypeConverter = new MessageTypeConverter();
 
-        public static MessageTypeConverter Instance
-        {
-            get
-            {
+        public static MessageTypeConverter Instance {
+            get {
                 return sMessageTypeConverter;
             }
         }
-
-
 
         public MessageTypeConverter()
         {
@@ -35,7 +29,7 @@ namespace VideoStore.Services
         {
             AutoMapper.Mapper.CreateMap<VideoStore.Business.Entities.Media,
                 VideoStore.Services.MessageTypes.Media>().ForMember(
-                    dest => dest.StockCount, opts => opts.MapFrom( src => src.Stocks.Quantity));
+                    dest => dest.StockCount, opts => opts.MapFrom(src => src.Stocks.Quantity));
 
             AutoMapper.Mapper.CreateMap<VideoStore.Business.Entities.Order,
                 VideoStore.Services.MessageTypes.Order>();
@@ -70,17 +64,13 @@ namespace VideoStore.Services
 
         public Destination Convert<Source, Destination>(Source s) where Destination : class
         {
-            if(typeof(Source) == typeof(VideoStore.Services.MessageTypes.User))
-            {
+            if (typeof(Source) == typeof(VideoStore.Services.MessageTypes.User)) {
                 return ConvertUserToInternalType(s as MessageTypes.User) as Destination;
-            }
-            else if(typeof(Source) == typeof(VideoStore.Business.Entities.User))
-            {
+            } else if (typeof(Source) == typeof(VideoStore.Business.Entities.User)) {
                 return ConvertToExternalType(s as Business.Entities.User) as Destination;
             }
             var result = AutoMapper.Mapper.Map<Source, Destination>(s);
-            if(typeof(Source) == typeof(MessageTypes.Order))
-            {
+            if (typeof(Source) == typeof(MessageTypes.Order)) {
                 (result as Business.Entities.Order).Customer = ConvertUserToInternalType(
                     (s as MessageTypes.Order).Customer
                 );
@@ -94,8 +84,7 @@ namespace VideoStore.Services
                 return null;
             }
 
-            MessageTypes.User lExternal = new MessageTypes.User()
-            {
+            MessageTypes.User lExternal = new MessageTypes.User() {
                 Address = user.Address,
                 Email = user.Email,
                 Id = user.Id,
@@ -103,10 +92,8 @@ namespace VideoStore.Services
                 Revision = user.Revision,
             };
 
-            if(user.LoginCredential != null)
-            {
-                lExternal.LoginCredential = new MessageTypes.LoginCredential()
-                {
+            if (user.LoginCredential != null) {
+                lExternal.LoginCredential = new MessageTypes.LoginCredential() {
                     Id = user.LoginCredential.Id,
                     UserName = user.LoginCredential.UserName,
                     EncryptedPassword = user.LoginCredential.EncryptedPassword
@@ -120,23 +107,20 @@ namespace VideoStore.Services
         {
 
             Business.Entities.User lInternal = UserProvider.ReadUserById(user.Id);
-            if(lInternal == null)
-            {
+            if (lInternal == null) {
                 lInternal = new Business.Entities.User();
             }
-            
-            
+
+
             lInternal.Address = user.Address;
             lInternal.Email = user.Email;
             lInternal.Id = user.Id;
             lInternal.Name = user.Name;
             lInternal.Revision = user.Revision;
-            
 
-            if(user.LoginCredential != null)
-            {
-                lInternal.LoginCredential = new Business.Entities.LoginCredential()
-                {
+
+            if (user.LoginCredential != null) {
+                lInternal.LoginCredential = new Business.Entities.LoginCredential() {
                     Id = user.LoginCredential.Id,
                     UserName = user.LoginCredential.UserName,
                     EncryptedPassword = user.LoginCredential.EncryptedPassword
@@ -145,11 +129,8 @@ namespace VideoStore.Services
             return lInternal;
         }
 
-
-        private IUserProvider UserProvider
-        {
-            get
-            {
+        private IUserProvider UserProvider {
+            get {
                 return ServiceFactory.GetService<IUserProvider>();
             }
         }
