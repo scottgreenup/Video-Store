@@ -240,3 +240,4 @@ ModelManifest.xml
 
 # FAKE - F# Make
 .fake/
+/VideoStore.WebClient/VideoStore/log/videostore.webclient
