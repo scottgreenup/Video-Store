@@ -11,7 +11,7 @@ namespace VideoStore.WebClient
         {
             ConfigureAuth(app);
 
-            Logging.AddFile("videostore.webclient");
+            Logging.AddFile("VideoStore.WebClient.log");
         }
     }
 }

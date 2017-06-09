@@ -44,7 +44,7 @@ namespace Common {
         {
             // string directory = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
             string directory = AppDomain.CurrentDomain.BaseDirectory;
-            string folder = @"\VideoStore\log\";
+            string folder = @"\log\";
             Directory.CreateDirectory(directory + folder);
             Instance.mFilenames.Add(directory + folder + filename);
         }

@@ -1,38 +1,34 @@
-﻿using System;
-using System.Collections.Generic;
+﻿using Common;
+using DeliveryCo.MessageTypes;
+using Microsoft.Practices.ServiceLocation;
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+using System;
 using System.Linq;
-using System.Text;
+using System.Messaging;
+using System.Transactions;
 using VideoStore.Business.Components.Interfaces;
 using VideoStore.Business.Entities;
-using System.Transactions;
-using Microsoft.Practices.ServiceLocation;
-using DeliveryCo.MessageTypes;
 
-namespace VideoStore.Business.Components
-{
-    public class OrderProvider : IOrderProvider
-    {
-        public IEmailProvider EmailProvider
-        {
+namespace VideoStore.Business.Components {
+    public class OrderProvider : IOrderProvider {
+        public IEmailProvider EmailProvider {
             get { return ServiceLocator.Current.GetInstance<IEmailProvider>(); }
         }
 
-        public IUserProvider UserProvider
-        {
+        public IUserProvider UserProvider {
             get { return ServiceLocator.Current.GetInstance<IUserProvider>(); }
         }
 
-        public void SubmitOrder(Entities.Order pOrder)
+        public void SubmitOrder(Order pOrder)
         {
-           
-            using (TransactionScope lScope = new TransactionScope())
-            {
+            Logging.Info($"Order:{pOrder.OrderNumber} : Submitting");
+
+            using (TransactionScope lScope = new TransactionScope()) {
                 LoadMediaStocks(pOrder);
                 MarkAppropriateUnchangedAssociations(pOrder);
-                using (VideoStoreEntityModelContainer lContainer = new VideoStoreEntityModelContainer())
-                {
-                    try
-                    {
+                using (VideoStoreEntityModelContainer lContainer = new VideoStoreEntityModelContainer()) {
+                    try {
                         pOrder.OrderNumber = Guid.NewGuid();
                         TransferFundsFromCustomer(UserProvider.ReadUserById(pOrder.Customer.Id).BankAccountNumber, pOrder.Total ?? 0.0);
 
@@ -40,13 +36,11 @@ namespace VideoStore.Business.Components
 
                         PlaceDeliveryForOrder(pOrder);
                         lContainer.Orders.ApplyChanges(pOrder);
-         
+
                         lContainer.SaveChanges();
                         lScope.Complete();
-                        
-                    }
-                    catch (Exception lException)
-                    {
+
+                    } catch (Exception lException) {
                         SendOrderErrorMessage(pOrder, lException);
                         throw;
                     }
@@ -59,8 +53,7 @@ namespace VideoStore.Business.Components
         {
             pOrder.Customer.MarkAsUnchanged();
             pOrder.Customer.LoginCredential.MarkAsUnchanged();
-            foreach (OrderItem lOrder in pOrder.OrderItems)
-            {
+            foreach (OrderItem lOrder in pOrder.OrderItems) {
                 lOrder.Media.Stocks.MarkAsUnchanged();
                 lOrder.Media.MarkAsUnchanged();
             }
@@ -68,30 +61,28 @@ namespace VideoStore.Business.Components
 
         private void LoadMediaStocks(Order pOrder)
         {
-            using (VideoStoreEntityModelContainer lContainer = new VideoStoreEntityModelContainer())
-            {
-                foreach (OrderItem lOrder in pOrder.OrderItems)
-                {
-                    lOrder.Media.Stocks = lContainer.Stocks.Where((pStock) => pStock.Media.Id == lOrder.Media.Id).FirstOrDefault();    
+            using (VideoStoreEntityModelContainer lContainer = new VideoStoreEntityModelContainer()) {
+                foreach (OrderItem lOrder in pOrder.OrderItems) {
+                    lOrder.Media.Stocks = lContainer.Stocks.Where((pStock) => pStock.Media.Id == lOrder.Media.Id).FirstOrDefault();
                 }
             }
         }
 
-        
+
 
         private void SendOrderErrorMessage(Order pOrder, Exception pException)
         {
-            EmailProvider.SendMessage(new EmailMessage()
-            {
+            Logging.Info($"Order:{pOrder.OrderNumber} : Had an error during processing: {pException.Message}");
+            EmailProvider.SendMessage(new EmailMessage() {
                 ToAddress = pOrder.Customer.Email,
-                Message = "There was an error in processsing your order " + pOrder.OrderNumber + ": "+ pException.Message +". Please contact Video Store"
+                Message = "There was an error in processsing your order " + pOrder.OrderNumber + ": " + pException.Message + ". Please contact Video Store"
             });
         }
 
         private void SendOrderPlacedConfirmation(Order pOrder)
         {
-            EmailProvider.SendMessage(new EmailMessage()
-            {
+            Logging.Info($"Order:{pOrder.OrderNumber} : Successfully submitted");
+            EmailProvider.SendMessage(new EmailMessage() {
                 ToAddress = pOrder.Customer.Email,
                 Message = "Your order " + pOrder.OrderNumber + " has been placed"
             });
@@ -101,9 +92,8 @@ namespace VideoStore.Business.Components
         {
             Delivery lDelivery = new Delivery() { DeliveryStatus = DeliveryStatus.Submitted, SourceAddress = "Video Store Address", DestinationAddress = pOrder.Customer.Address, Order = pOrder };
 
-            Guid lDeliveryIdentifier = ExternalServiceFactory.Instance.DeliveryService.SubmitDelivery(new DeliveryInfo()
-            { 
-                OrderNumber = lDelivery.Order.OrderNumber.ToString(),  
+            Guid lDeliveryIdentifier = ExternalServiceFactory.Instance.DeliveryService.SubmitDelivery(new DeliveryInfo() {
+                OrderNumber = lDelivery.Order.OrderNumber.ToString(),
                 SourceAddress = lDelivery.SourceAddress,
                 DestinationAddress = lDelivery.DestinationAddress,
                 DeliveryNotificationAddress = "net.tcp://localhost:9010/DeliveryNotificationService"
@@ -111,17 +101,14 @@ namespace VideoStore.Business.Components
 
             lDelivery.ExternalDeliveryIdentifier = lDeliveryIdentifier;
             pOrder.Delivery = lDelivery;
-            
+
         }
 
         private void TransferFundsFromCustomer(int pCustomerAccountNumber, double pTotal)
         {
-            try
-            {
+            try {
                 ExternalServiceFactory.Instance.TransferService.Transfer(pTotal, pCustomerAccountNumber, RetrieveVideoStoreAccountNumber());
-            }
-            catch(Exception e)
-            {
+            } catch (Exception e) {
                 throw new Exception("Error Transferring funds for order.");
             }
         }
